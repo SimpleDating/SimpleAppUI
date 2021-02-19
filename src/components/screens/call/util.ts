@@ -2,18 +2,33 @@ import io from 'socket.io-client';
 // @ts-ignore
 import Peer from 'react-native-peerjs';
 import {mediaDevices, MediaStream} from 'react-native-webrtc';
+import store from 'store';
+import {setLocalStream} from 'store/slices/streamSlice';
 
 const url = 'http://localhost:3000/match';
 
-export default class CallUtils {
-  peer: Peer;
-  socket: SocketIOClient.Socket;
+class CallUtils {
+  peer: Peer | null;
+  socket: SocketIOClient.Socket | null = null;
   peerId: string = '';
   callInitiated: boolean = false;
   stream: boolean | MediaStream = false;
   matchStream: boolean | MediaStream = false;
 
+  static instance: CallUtils | null = null;
+  static getInstance() {
+    if (CallUtils.instance == null) {
+      CallUtils.instance = new CallUtils();
+    }
+
+    return CallUtils.instance;
+  }
+
   constructor() {
+    console.log('constructor');
+  }
+
+  async setUpCall() {
     this.peer = new Peer();
     this.socket = io(
       url,
@@ -24,25 +39,31 @@ export default class CallUtils {
       //   reconnectionAttempts: 10,
       // }
     );
-    console.log('constructor');
     this.socketEventHandlers();
     this.peerEventHandlers();
     this.peerCallHandlers();
+    await this.initializeStream();
   }
 
   socketEventHandlers() {
-    this.socket.on('connect', () => {
+    if (!this.socket) {
+      console.log('Socket connect not initialized');
+      return;
+    }
+    const socket = this.socket as SocketIOClient.Socket;
+
+    socket.on('connect', () => {
       console.log('socket connected');
     });
-    this.socket.on('disconnect', () => {
+    socket.on('disconnect', () => {
       console.log('socket disconnected --');
     });
-    this.socket.on('error', (err: Error) => {
+    socket.on('error', (err: Error) => {
       console.log('socket error --', err);
     });
 
     // Custom Events
-    this.socket.on('foundMatch', (matchPeerId: string) => {
+    socket.on('foundMatch', (matchPeerId: string) => {
       if (!this.callInitiated) {
         this.callMatch(matchPeerId);
       }
@@ -50,10 +71,16 @@ export default class CallUtils {
   }
 
   peerEventHandlers() {
+    if (!this.peer) {
+      console.log('null peer 2');
+      return;
+    }
+    const socket = this.socket as SocketIOClient.Socket;
+
     this.peer.on('open', (id: any) => {
       this.peerId = id;
       console.log('Peer ID:-', id);
-      this.socket.emit('findMatch', this.peerId);
+      socket.emit('findMatch', this.peerId);
     });
 
     this.peer.on('error', (err: Error) => {
@@ -63,6 +90,10 @@ export default class CallUtils {
   }
 
   callMatch(matchPeerId: string) {
+    if (!this.peer) {
+      console.log('null peer 1');
+      return;
+    }
     const call = this.peer.call(matchPeerId, this.stream, {
       metadata: {id: this.peerId},
     });
@@ -78,7 +109,13 @@ export default class CallUtils {
   }
 
   peerCallHandlers() {
-    this.peer.on('call', (call: any) => {
+    if (!this.peer) {
+      console.log('null peer');
+      return;
+    }
+    const peer = this.peer as Peer;
+
+    peer.on('call', (call: any) => {
       while (!this.stream) {
         console.log('Waiting for initialization');
       }
@@ -116,5 +153,9 @@ export default class CallUtils {
         optional: [{sourceId}],
       },
     });
+    store.dispatch(setLocalStream({stream: this.stream}));
+    console.log('Stream created');
   }
 }
+
+export default CallUtils;

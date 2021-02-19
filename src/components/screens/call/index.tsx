@@ -1,8 +1,9 @@
-import React, {useRef, useState, useEffect} from 'react';
+import React, {useEffect} from 'react';
 import {Text, StyleSheet, Button} from 'react-native';
 import CallUtils from './util';
 
 import {RTCView, MediaStream} from 'react-native-webrtc';
+import {connect} from 'react-redux';
 
 function toggleVideo(stream: MediaStream) {
   const videoTrack = stream.getVideoTracks()[0];
@@ -14,39 +15,37 @@ function toggleAudio(stream: MediaStream) {
   audioTrack.enabled = !audioTrack.enabled;
 }
 
-const Call = () => {
-  const utils = useRef(new CallUtils());
-  const [stream, setStream] = useState(utils.current.stream);
-
+const Call = ({navigation, localStream, remoteStream}: any) => {
   useEffect(() => {
-    if (!stream) {
-      (async () => {
-        await utils.current.initializeStream();
-        setStream(utils.current.stream);
-      })();
-    }
-  }, [stream]);
+    CallUtils.getInstance().setUpCall();
+  }, []);
 
-  if (stream) {
+  if (localStream) {
     return (
       <>
         <RTCView
-          streamURL={(stream as MediaStream)?.toURL()}
+          streamURL={(remoteStream as MediaStream)?.toURL()}
+          mirror={true}
           style={styles.viewer}
         />
         <RTCView
-          streamURL={(stream as MediaStream)?.toURL()}
+          streamURL={(localStream as MediaStream)?.toURL()}
           mirror={true}
           style={styles.viewer}
         />
         <Button
-          onPress={() => toggleVideo(stream as MediaStream)}
+          onPress={() => toggleVideo(localStream as MediaStream)}
           title="Video toggle"
           color="#841584"
         />
         <Button
-          onPress={() => toggleAudio(stream as MediaStream)}
+          onPress={() => toggleAudio(localStream as MediaStream)}
           title="Audio toggle"
+          color="#841584"
+        />
+        <Button
+          onPress={() => navigation.goBack()}
+          title="End Call"
           color="#841584"
         />
       </>
@@ -56,7 +55,15 @@ const Call = () => {
   }
 };
 
-export default Call;
+const mapStateToProps = (state: any) => {
+  console.log("in Call component's mapStateToProps");
+  return {
+    localStream: state.stream.localStream,
+    remoteStream: state.stream.localStream,
+  };
+};
+
+export default connect(mapStateToProps)(Call);
 
 const styles = StyleSheet.create({
   viewer: {

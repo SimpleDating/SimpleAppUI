@@ -5,7 +5,10 @@ const Explore = ({navigation}: any) => {
   return (
     <View>
       {/* <Text>Explore! Meet People</Text>; */}
-      <Button title="Match Search" onPress={navigation.navigate('Call')} />
+      <Button
+        title="Match Search"
+        onPress={() => navigation.navigate('Call')}
+      />
     </View>
   );
 };
