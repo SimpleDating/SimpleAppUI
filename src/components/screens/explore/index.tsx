@@ -1,6 +1,13 @@
 import React from 'react';
-import { Text } from 'react-native';
+import {Button, Text, View} from 'react-native';
 
-const Explore = () => <Text>Explore! Meet People</Text>;
+const Explore = ({navigation}: any) => {
+  return (
+    <View>
+      {/* <Text>Explore! Meet People</Text>; */}
+      <Button title="Match Search" onPress={navigation.navigate('Call')} />
+    </View>
+  );
+};
 
 export default Explore;
