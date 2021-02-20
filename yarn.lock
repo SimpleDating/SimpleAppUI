@@ -9294,6 +9294,9 @@ resolve@1.1.7:
     socket.io-client: 2.3.0
     styled-components: ^5.2.1
     typescript: ^3.8.3
+  peerDependencies:
+    react-dom: "*"
+    react-is: "*"
   languageName: unknown
   linkType: soft
 

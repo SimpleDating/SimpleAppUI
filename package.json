@@ -63,5 +63,9 @@
       "json",
       "node"
     ]
+  },
+  "peerDependencies": {
+    "react-dom": "*",
+    "react-is": "*"
   }
 }
