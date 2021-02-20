@@ -1,6 +1,5 @@
-import React, {useEffect} from 'react';
+import React from 'react';
 import {Text, StyleSheet, Button} from 'react-native';
-import CallUtils from './util';
 
 import {RTCView, MediaStream} from 'react-native-webrtc';
 import {connect} from 'react-redux';
@@ -16,11 +15,7 @@ function toggleAudio(stream: MediaStream) {
 }
 
 const Call = ({navigation, localStream, remoteStream}: any) => {
-  useEffect(() => {
-    CallUtils.getInstance().setUpCall();
-  }, []);
-
-  if (localStream) {
+  if (remoteStream) {
     return (
       <>
         <RTCView
@@ -51,15 +46,19 @@ const Call = ({navigation, localStream, remoteStream}: any) => {
       </>
     );
   } else {
-    return <Text>Waiting!</Text>;
+    return <Text>Waiting for match!</Text>;
   }
 };
 
 const mapStateToProps = (state: any) => {
   console.log("in Call component's mapStateToProps");
+
+  const {localStream, remoteStream} = state.stream;
+
+  console.log('remoteStream', remoteStream);
   return {
-    localStream: state.stream.localStream,
-    remoteStream: state.stream.localStream,
+    localStream,
+    remoteStream,
   };
 };
 

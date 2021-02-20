@@ -5,7 +5,7 @@ const store = configureStore({
   reducer: rootReducer,
   middleware: getDefaultMiddleware({
     serializableCheck: {
-      ignoredActions: ['stream/setLocalStream'],
+      ignoredActions: ['stream/setLocalStream', 'stream/setRemoteStream'],
     },
   }),
 });

@@ -3,9 +3,10 @@ import io from 'socket.io-client';
 import Peer from 'react-native-peerjs';
 import {mediaDevices, MediaStream} from 'react-native-webrtc';
 import store from 'store';
-import {setLocalStream} from 'store/slices/streamSlice';
+import {setLocalStream, setRemoteStream} from 'store/slices/streamSlice';
 
-const url = 'http://localhost:3000/match';
+// Replace this url with a comparable tunnel to your local matchmaker server
+const url = 'https://801ff90b4c7e.ngrok.io/match';
 
 class CallUtils {
   peer: Peer | null;
@@ -14,6 +15,8 @@ class CallUtils {
   callInitiated: boolean = false;
   stream: boolean | MediaStream = false;
   matchStream: boolean | MediaStream = false;
+  username: string = 'nameNotYetInitialized';
+  matchUsername: string = "match's nameNotYetInitialized";
 
   static instance: CallUtils | null = null;
   static getInstance() {
@@ -28,7 +31,9 @@ class CallUtils {
     console.log('constructor');
   }
 
-  async setUpCall() {
+  async setUpCall(username: string) {
+    this.username = username;
+
     this.peer = new Peer();
     this.socket = io(
       url,
@@ -39,7 +44,7 @@ class CallUtils {
       //   reconnectionAttempts: 10,
       // }
     );
-    this.socketEventHandlers();
+    await this.socketEventHandlers();
     this.peerEventHandlers();
     this.peerCallHandlers();
     await this.initializeStream();
@@ -52,21 +57,26 @@ class CallUtils {
     }
     const socket = this.socket as SocketIOClient.Socket;
 
-    socket.on('connect', () => {
-      console.log('socket connected');
-    });
-    socket.on('disconnect', () => {
-      console.log('socket disconnected --');
-    });
-    socket.on('error', (err: Error) => {
-      console.log('socket error --', err);
-    });
+    return new Promise((resolve) => {
+      socket.on('connect', () => {
+        console.log('socket connected');
+        resolve(true);
+      });
 
-    // Custom Events
-    socket.on('foundMatch', (matchPeerId: string) => {
-      if (!this.callInitiated) {
-        this.callMatch(matchPeerId);
-      }
+      socket.on('disconnect', () => {
+        console.log('socket disconnected --');
+      });
+      socket.on('error', (err: Error) => {
+        console.log('socket error --', err);
+      });
+
+      // Custom Events
+      socket.on('foundMatch', ({name, peerId, room}: any) => {
+        console.log('Found match', {name, peerId, room});
+        if (!this.callInitiated) {
+          this.callMatch(peerId);
+        }
+      });
     });
   }
 
@@ -80,13 +90,19 @@ class CallUtils {
     this.peer.on('open', (id: any) => {
       this.peerId = id;
       console.log('Peer ID:-', id);
-      socket.emit('findMatch', this.peerId);
+
+      socket.emit('findMatch', {
+        username: this.username,
+        peerId: this.peerId,
+      });
     });
 
     this.peer.on('error', (err: Error) => {
-      console.log('peer connection error', err);
+      console.log('peer connection error', JSON.stringify(err, null, 2));
       this.peer.reconnect();
     });
+
+    return new Promise((resolve) => {});
   }
 
   callMatch(matchPeerId: string) {
@@ -124,6 +140,9 @@ class CallUtils {
 
       call.on('stream', (matchStream: MediaStream) => {
         this.matchStream = matchStream;
+        console.log("Got match's stream. Updating Redux store.");
+
+        store.dispatch(setRemoteStream({stream: this.matchStream}));
       });
       call.on('close', () => {
         console.log('closing peers listeners', call.metadata.id);
