@@ -1,6 +1,29 @@
 import React from 'react';
-import { Text } from 'react-native';
+import {Button, Text, View} from 'react-native';
+import {connect} from 'react-redux';
+import CallUtils from '../call/util';
 
-const Explore = () => <Text>Explore! Meet People</Text>;
+const Explore = ({navigation, username}: any) => {
+  return (
+    <>
+      {/* <Text>Explore! Meet People</Text>; */}
+      <Button
+        title="Match Search"
+        onPress={() => {
+          CallUtils.getInstance().setUpCall(username);
+          navigation.navigate('Call');
+        }}
+      />
+    </>
+  );
+};
 
-export default Explore;
+const mapStateToProps = (state: any) => {
+  console.log("in Explore component's mapStateToProps");
+
+  return {
+    username: state.auth.username,
+  };
+};
+
+export default connect(mapStateToProps)(Explore);
